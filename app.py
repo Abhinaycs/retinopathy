@@ -5,15 +5,18 @@ import tensorflow as tf
 import gdown
 import os
 
+# Page config
 st.set_page_config(page_title="Retinopathy Detector", layout="centered")
 
+# Constants
 MODEL_PATH = "model.h5"
 CLASS_NAMES = ['No_DR', 'Mild', 'Moderate', 'Severe', 'Proliferative_DR']
 
-# Download model if not present
+# Function to download and load model
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
+        # Google Drive model URL (ensure it's shared to 'Anyone with the link')
         url = "https://drive.google.com/uc?id=1Yo5cF9VX3E1dD53D6S6xAtnmmrLbpibB"
         gdown.download(url, MODEL_PATH, quiet=False)
     model = tf.keras.models.load_model(MODEL_PATH)
@@ -21,13 +24,15 @@ def load_model():
 
 model = load_model()
 
+# Image preprocessing function
 def preprocess_image(image: Image.Image) -> np.ndarray:
-    image = image.resize((224, 224))
+    image = image.resize((224, 224))  # Resize to match model input
     img_array = tf.keras.preprocessing.image.img_to_array(image)
-    img_array = tf.expand_dims(img_array, 0)  # Create batch axis
-    img_array = img_array / 255.0
+    img_array = tf.expand_dims(img_array, 0)  # Add batch dimension
+    img_array = img_array / 255.0  # Normalize to [0, 1]
     return img_array
 
+# UI
 st.title("👁️ Diabetic Retinopathy Detection")
 
 uploaded_file = st.file_uploader("Upload a retina image", type=["jpg", "jpeg", "png"])
