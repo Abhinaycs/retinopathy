@@ -1,0 +1,35 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Model and large files
+*.keras
+*.h5
+*.hdf5
+dr_model.keras
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Jupyter notebooks checkpoints (if any)
+.ipynb_checkpoints/
+
+# Streamlit specific
+.streamlit/config.toml
+
+# VS Code settings
+.vscode/
+
+# MacOS metadata
+Icon?
