@@ -1,0 +1,12 @@
+{
+    "train_dir": "B:/organized_train_images/train_images",
+    "valid_dir": "B:/organized_train_images/valid_images",
+    "rotation_range": 20,
+    "height_shift_range": 0.1,
+    "width_shift_range": 0.1,
+    "zoom_range": 0.2,
+    "horizontal_flip": true,
+    "train_batch_size": 16,
+    "valid_batch_size": 16,
+    "epochs": 10
+}
