@@ -1,63 +1,58 @@
 import streamlit as st
 import tensorflow as tf
-import tensorflow_addons as tfa
 import numpy as np
-from PIL import Image
 import gdown
-import tempfile
+import os
+from PIL import Image
 
+# ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(page_title="Diabetic Retinopathy Detection", layout="centered")
 
-st.title("👁️ Diabetic Retinopathy Classifier")
-
-# Load the Keras model from Google Drive using gdown
+# ---------------------- LOAD MODEL ----------------------
 @st.cache_resource
-def load_model_from_gdrive():
-    url = "https://drive.google.com/uc?id=19sMfDev7XMMuBadAOV1LPU2BXbrhexiw"  # Replace with your actual model ID
-
-    with tempfile.NamedTemporaryFile(suffix=".keras", delete=False) as tmp_file:
-        gdown.download(url, tmp_file.name, quiet=False)
-        tmp_file_path = tmp_file.name
-
-    # Register custom metric from TensorFlow Addons
-    custom_objects = {"Addons>CohenKappa": tfa.metrics.CohenKappa}
-
-    model = tf.keras.models.load_model(tmp_file_path, custom_objects=custom_objects)
+def load_model():
+    model_path = 'dr_model.keras'
+    if not os.path.exists(model_path):
+        url = 'https://drive.google.com/uc?id=19sMfDev7XMMuBadAOV1LPU2BXbrhexiw'
+        gdown.download(url, model_path, quiet=False)
+    # Load model with custom objects if any
+    with tf.keras.utils.custom_object_scope({'Addons>CohenKappa': tf.keras.metrics.MeanSquaredError()}):
+        model = tf.keras.models.load_model(model_path)
     return model
 
-model = load_model_from_gdrive()
+model = load_model()
 
-# Preprocess uploaded image
-def preprocess_image(image):
-    image = image.resize((224, 224))  # Adjust based on your model's input shape
+# ---------------------- PREDICTION FUNCTION ----------------------
+def predict_image(image):
+    image = image.resize((224, 224))  # Resize to model input shape
     image_array = np.array(image) / 255.0
-    if image_array.shape[-1] == 4:  # Handle PNG with alpha
+    if image_array.shape[-1] == 4:  # remove alpha if present
         image_array = image_array[..., :3]
     image_array = np.expand_dims(image_array, axis=0)
-    return image_array
+    prediction = model.predict(image_array)
+    predicted_class = np.argmax(prediction)
+    return predicted_class
 
-# Map predicted class to readable label
-label_map = {
-    0: "No DR",
+# ---------------------- CLASS NAMES ----------------------
+class_names = {
+    0: "No Diabetic Retinopathy",
     1: "Mild",
     2: "Moderate",
     3: "Severe",
-    4: "Proliferative DR"
+    4: "Proliferative Diabetic Retinopathy"
 }
 
-# Upload section
-uploaded_file = st.file_uploader("Upload a retina image", type=["jpg", "jpeg", "png"])
+# ---------------------- STREAMLIT UI ----------------------
+st.title("👁️ Diabetic Retinopathy Classification")
+st.write("Upload a retina image to detect the presence and severity of diabetic retinopathy.")
+
+uploaded_file = st.file_uploader("Upload Retina Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Retina Image", use_column_width=True)
+    st.image(image, caption='Uploaded Image', use_column_width=True)
 
     if st.button("Predict"):
-        with st.spinner("Analyzing image..."):
-            preprocessed = preprocess_image(image)
-            prediction = model.predict(preprocessed)
-            predicted_class = np.argmax(prediction)
-            confidence = np.max(prediction)
-
-            st.success(f"🩺 **Prediction:** {label_map[predicted_class]}")
-            st.info(f"🔍 **Confidence:** {confidence:.2%}")
+        with st.spinner("Analyzing..."):
+            prediction = predict_image(image)
+            st.success(f"Prediction: **{class_names[prediction]}**")
