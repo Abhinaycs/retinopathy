@@ -1,47 +1,44 @@
 import streamlit as st
-import numpy as np
 import tensorflow as tf
-import gdown
-from tensorflow_addons.metrics import CohenKappa
+import numpy as np
 from PIL import Image
+import gdown
+import os
+
+st.set_page_config(page_title="Retinopathy Detection", layout="centered")
+
+# Title
+st.title("👁️ Diabetic Retinopathy Detection")
+
+# Download model if not present
+MODEL_PATH = "retinopathy_model.h5"
+MODEL_URL = "https://drive.google.com/uc?id=1TSHBXjMu6a4tFVHnLnz6AtP3y8g3ZVmT"
 
 @st.cache_resource
-def load_model_from_gdrive():
-    url = "https://drive.google.com/uc?id=1mMp6v2OR6uL2xA0C3YrEavUReLNEUpNo"
-    output_path = "retinopathy_model.keras"
-    gdown.download(url, output_path, quiet=False)
-
-    model = tf.keras.models.load_model(
-        output_path,
-        custom_objects={"Addons>CohenKappa": CohenKappa}
-    )
+def load_model():
+    if not os.path.exists(MODEL_PATH):
+        gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
+    model = tf.keras.models.load_model(MODEL_PATH)
     return model
 
-def preprocess_image(image):
-    img = image.resize((224, 224))
-    img_array = np.array(img) / 255.0
-    if img_array.shape[-1] == 4:  # handle images with alpha channel
-        img_array = img_array[..., :3]
-    return np.expand_dims(img_array, axis=0)
+model = load_model()
 
-def main():
-    st.title("Diabetic Retinopathy Classification")
-    st.write("Upload a retinal image to classify the stage of diabetic retinopathy.")
+# Class names
+classes = ['No DR', 'Mild', 'Moderate', 'Severe', 'Proliferative DR']
 
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+# File uploader
+uploaded_file = st.file_uploader("Upload a retinal fundus image", type=["jpg", "jpeg", "png"])
 
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert('RGB')
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-        with st.spinner('Loading model and predicting...'):
-            model = load_model_from_gdrive()
-            processed_image = preprocess_image(image)
-            prediction = model.predict(processed_image)
-            class_names = ["No DR", "Mild", "Moderate", "Severe", "Proliferative DR"]
-            predicted_class = class_names[np.argmax(prediction)]
+    # Preprocessing
+    image = image.resize((224, 224))
+    image_array = np.expand_dims(np.array(image) / 255.0, axis=0)
 
-        st.success(f"Prediction: **{predicted_class}**")
+    # Prediction
+    prediction = model.predict(image_array)
+    predicted_class = classes[np.argmax(prediction)]
 
-if __name__ == "__main__":
-    main()
+    st.markdown(f"### 🔍 Predicted Class: **{predicted_class}**")
