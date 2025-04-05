@@ -2,37 +2,36 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 import tensorflow as tf
-import gdown
+import urllib.request
 import os
 
-# Page config
 st.set_page_config(page_title="Retinopathy Detector", layout="centered")
 
 # Constants
-MODEL_PATH = "model.h5"
+MODEL_PATH = "dr_model.keras"
+MODEL_URL = "https://www.dropbox.com/scl/fi/57dtrpmrpbn49wmqqeifs/dr_model.keras?rlkey=l6vadl5cr7hluawv3xqhc3ugy&st=i5co4icd&dl=1"
 CLASS_NAMES = ['No_DR', 'Mild', 'Moderate', 'Severe', 'Proliferative_DR']
 
-# Function to download and load model
+# Load and cache model
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
-        # Google Drive model URL (ensure it's shared to 'Anyone with the link')
-        url = "https://drive.google.com/uc?id=1Yo5cF9VX3E1dD53D6S6xAtnmmrLbpibB"
-        gdown.download(url, MODEL_PATH, quiet=False)
+        with st.spinner("Downloading model..."):
+            urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
     model = tf.keras.models.load_model(MODEL_PATH)
     return model
 
 model = load_model()
 
-# Image preprocessing function
+# Image preprocessing
 def preprocess_image(image: Image.Image) -> np.ndarray:
-    image = image.resize((224, 224))  # Resize to match model input
+    image = image.resize((224, 224))
     img_array = tf.keras.preprocessing.image.img_to_array(image)
     img_array = tf.expand_dims(img_array, 0)  # Add batch dimension
-    img_array = img_array / 255.0  # Normalize to [0, 1]
+    img_array = img_array / 255.0
     return img_array
 
-# UI
+# Streamlit UI
 st.title("👁️ Diabetic Retinopathy Detection")
 
 uploaded_file = st.file_uploader("Upload a retina image", type=["jpg", "jpeg", "png"])
