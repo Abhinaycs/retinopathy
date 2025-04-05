@@ -3,7 +3,7 @@ import tensorflow as tf
 import urllib.request
 import os
 
-# Constants
+# Model constants
 MODEL_URL = "https://www.dropbox.com/scl/fi/57dtrpmrpbn49wmqqeifs/dr_model.keras?rlkey=l6vadl5cr7hluawv3xqhc3ugy&dl=1"
 MODEL_PATH = "dr_model.keras"
 
@@ -13,9 +13,13 @@ def load_model():
         if not os.path.exists(MODEL_PATH):
             with st.spinner("📥 Downloading model from Dropbox..."):
                 urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+                # Check file size
+                if os.path.getsize(MODEL_PATH) < 100000:  # ~100 KB minimum
+                    raise ValueError("Downloaded file is too small. Possibly an HTML error page.")
 
         model = tf.keras.models.load_model(MODEL_PATH)
         return model
+
     except Exception as e:
         st.error("❌ Failed to load the model. Please verify the model file format or URL.")
         st.exception(e)
